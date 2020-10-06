@@ -38,7 +38,8 @@ void *test_op(void *interface, void *zero_copy_buf, size_t buf_len)
         printf("Got zero copy data at index %d of length %d\n", i, copy_data.len);
         if (copy_data.len != 0)
         {
-            fwrite(copy_data.data, sizeof(char), copy_data.len, stdout);
+            string str((char *)copy_data.data, copy_data.len);
+            cout << str << endl;
         }
     }
 
