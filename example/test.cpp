@@ -1,19 +1,20 @@
 #include "cdeno.h"
 #include <iostream>
+#include <string>
 
 using namespace std;
 
 void *test_op(void *interface, void *zero_copy_buf, size_t buf_len);
 extern "C" void cdeno_plugin_init(void *interface)
 {
-    std::cout << "Welcome to a cdeno plugin!!" << std::endl;
-    std::cout << "size of voidptr: " << sizeof(void *) << "" << sizeof(size_t) << std::endl;
+    cout << "Welcome to a cdeno plugin!!" << endl;
+    cout << "size of voidptr: " << sizeof(void *) << " " << sizeof(size_t) << endl;
     cdeno_register_op(interface, "test_op", test_op);
 }
 
 void *test_op(void *interface, void *zero_copy_buf, size_t buf_len)
 {
-    std::cout << "test_op called!" << std::endl;
+    cout << "test_op called!" << endl;
     const char test_response[] = {
         0x48,
         0x65,
@@ -28,8 +29,8 @@ void *test_op(void *interface, void *zero_copy_buf, size_t buf_len)
         0x64,
         0x21};
 
-    std::cout << (unsigned char *)&test_response << std::endl;
-    std::cout << "Amount of zero-copy buffers: " << buf_len << std::endl;
+    cout << (unsigned char *)&test_response << endl;
+    cout << "Amount of zero-copy buffers: " << buf_len << endl;
     for (size_t i = 0; i < buf_len; i++)
     {
         ZeroCopyData copy_data = cdeno_get_zero_copy_buf(&zero_copy_buf, i);
