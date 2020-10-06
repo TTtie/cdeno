@@ -1,5 +1,6 @@
 #include "cdeno.h"
 #include <iostream>
+#include <cstring>
 #include <string>
 
 using namespace std;
@@ -15,21 +16,9 @@ extern "C" void cdeno_plugin_init(void *interface)
 void *test_op(void *interface, void *zero_copy_buf, size_t buf_len)
 {
     cout << "test_op called!" << endl;
-    const char test_response[] = {
-        0x48,
-        0x65,
-        0x6c,
-        0x6c,
-        0x6f,
-        0x20,
-        0x77,
-        0x6f,
-        0x72,
-        0x6c,
-        0x64,
-        0x21};
+    const char *test_response = "Hello world!";
 
-    cout << (unsigned char *)&test_response << endl;
+    cout << test_response << endl;
     cout << "Amount of zero-copy buffers: " << buf_len << endl;
     for (size_t i = 0; i < buf_len; i++)
     {
@@ -43,6 +32,6 @@ void *test_op(void *interface, void *zero_copy_buf, size_t buf_len)
         }
     }
 
-    void *op = cdeno_create_op_sync((unsigned char *)&test_response, sizeof(test_response));
+    void *op = cdeno_create_op_sync((unsigned char *)test_response, strlen(test_response));
     return op;
 }
