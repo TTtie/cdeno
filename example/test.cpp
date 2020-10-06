@@ -3,8 +3,6 @@
 
 using namespace std;
 
-cdeno_op_callback test_op;
-
 void* test_op(void* interface, void* zero_copy_buf, size_t buf_len); 
 extern "C" void cdeno_plugin_init(void* interface) {
     std::cout << "Welcome to a cdeno plugin!!" << std::endl;
@@ -28,7 +26,7 @@ void* test_op(void* interface, void* zero_copy_buf, size_t buf_len) {
         0x64,
         0x21
     };
-    
+
     std::cout << (unsigned char *) &test_response << std::endl;
     void* op = cdeno_create_op_sync((unsigned char *) &test_response, sizeof(test_response));
     return op;
