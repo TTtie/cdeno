@@ -1,6 +1,6 @@
 use crate::types::*;
-use crate::OP_TO_FN_PTR_MAP;
 use crate::OP_NAME_TO_ID_MAP;
+use crate::OP_TO_FN_PTR_MAP;
 use deno_core::plugin_api::*;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_uchar};
@@ -25,7 +25,6 @@ pub extern "C" fn cdeno_register_op(
         OP_TO_FN_PTR_MAP.with(|map| {
             let map = map.borrow_mut();
             if map.contains_key(&op_id) {
-                let buf_len = map.len() - 1;
                 let op_fn = map.get(&op_id).unwrap();
                 println!(
                     "Brace for impact, calling {:?} at {:?}",
@@ -35,11 +34,8 @@ pub extern "C" fn cdeno_register_op(
 
                 let boxed_iface = Box::new(iface);
                 let boxed_buf = Box::new(&mut buf[1..]);
-                println!(
-                    "Arg sizes: {:?} {:?}",
-                    std::mem::size_of::<CDenoInterface>(),
-                    std::mem::size_of::<Box<&mut [ZeroCopyBuf]>>()
-                );
+                let buf_len = boxed_buf.len();
+                println!("zero copy is {:?} long", boxed_buf.len());
                 let op = (*op_fn)(boxed_iface, boxed_buf, buf_len);
 
                 return *op;
@@ -68,4 +64,34 @@ pub extern "C" fn cdeno_create_op_sync(char_ptr: *mut c_uchar, len: usize) -> *m
     println!("Created a sync op from {:?}", vec);
 
     Box::into_raw(Box::new(Op::Sync(vec.into_boxed_slice())))
+}
+
+#[repr(C)]
+pub struct ZeroCopyData {
+    len: usize,
+    data: *const c_uchar,
+}
+
+#[no_mangle]
+pub extern "C" fn cdeno_get_zero_copy_buf(
+    zero_copy: *const Box<&mut [ZeroCopyBuf]>,
+    index: usize,
+) -> ZeroCopyData {
+    let no_copy = unsafe { &*zero_copy };
+    println!("Getting zero copy buf at index {:?}", index);
+    println!("len of 0copybuf: {:?}", no_copy.len());
+    if no_copy.len() > index {
+        println!("Zero copy buffer is present");
+        let buf: &[u8] = &no_copy[index];
+        ZeroCopyData {
+            len: buf.len(),
+            data: buf.as_ptr(),
+        }
+    } else {
+        println!("Zero copy buffer is NOT present");
+        ZeroCopyData {
+            len: 0,
+            data: [].as_ptr(),
+        }
+    }
 }
