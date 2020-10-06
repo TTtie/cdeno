@@ -34,7 +34,7 @@ pub extern "C" fn cdeno_register_op(
                 );
 
                 let boxed_iface = Box::new(iface);
-                let boxed_buf = Box::new(buf);
+                let boxed_buf = Box::new(&mut buf[1..]);
                 println!(
                     "Arg sizes: {:?} {:?}",
                     std::mem::size_of::<CDenoInterface>(),
