@@ -27,15 +27,14 @@ export function openPlugin(path) {
     const buf = te.encode(path);
 
     const out = Deno.core.dispatch(cdenoOpenPluginOp, buf);
-    console.log(out);
     const outBuf = td.decode(out);
-    console.log(outBuf);
     const opMap = JSON.parse(outBuf);
     for (const k in opMap) {
         if (!Object.prototype.hasOwnProperty.call(opMap, k)) continue;
         ops[k] = function (...args) {
             return Deno.core.dispatch(Number(opMap[k]), jsNumberToRustusize(BigInt(opMap[k])), ...args)
         }
+        ops[k].id = Number(opMap[k])
     }
 }
 

@@ -3,5 +3,9 @@
     "deno.unstable": true,
     "deno.import_intellisense_origins": {
         "https://deno.land": true
+    },
+    "files.associations": {
+        "*.ejs": "html",
+        "chrono": "cpp"
     }
 }

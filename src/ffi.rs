@@ -2,17 +2,23 @@ use crate::types::*;
 use crate::OP_NAME_TO_ID_MAP;
 use crate::OP_TO_FN_PTR_MAP;
 use deno_core::plugin_api::*;
+use futures::channel::oneshot::{channel, Sender};
+use futures::FutureExt;
+use std::ffi::c_void;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_uchar};
+use std::thread::spawn;
 
 #[no_mangle]
 pub extern "C" fn cdeno_register_op(
-    iface: CDenoInterface,
+    iface: *mut CDenoInterface,
     name: *const c_char,
     dispatcher: CDenoOpDispatcher,
 ) -> OpId {
     let cstr = unsafe { CStr::from_ptr(name) };
     let map_str = cstr.to_str().unwrap();
+
+    let interface = unsafe { &mut *iface };
 
     fn cdeno_trampoline(iface: &mut dyn Interface, buf: &mut [ZeroCopyBuf]) -> Op {
         let op_id_buf: &[u8] = &buf[0];
@@ -35,8 +41,7 @@ pub extern "C" fn cdeno_register_op(
                 let boxed_iface = Box::new(iface);
                 let boxed_buf = Box::new(&mut buf[1..]);
                 let buf_len = boxed_buf.len();
-                println!("zero copy is {:?} long", boxed_buf.len());
-                let op = (*op_fn)(boxed_iface, boxed_buf, buf_len);
+                let op = unsafe { Box::from_raw((*op_fn)(boxed_iface, boxed_buf, buf_len)) };
 
                 return *op;
             };
@@ -44,11 +49,8 @@ pub extern "C" fn cdeno_register_op(
             Op::Sync(vec![].into_boxed_slice())
         })
     }
-    println!(
-        "Registering op {:?} at {:?}",
-        map_str, dispatcher as *const CDenoOpDispatcher
-    );
-    let op_id = iface.register_op(map_str, cdeno_trampoline);
+    
+    let op_id = interface.register_op(map_str, cdeno_trampoline);
     OP_TO_FN_PTR_MAP.with(|map| map.borrow_mut().insert(op_id, dispatcher));
     OP_NAME_TO_ID_MAP.with(|map| map.borrow_mut().insert(map_str.to_string(), op_id));
     op_id
@@ -67,6 +69,44 @@ pub extern "C" fn cdeno_create_op_sync(char_ptr: *mut c_uchar, len: usize) -> *m
 }
 
 #[repr(C)]
+pub struct CDenoAsyncOpData {
+    data: *mut c_void,
+}
+
+unsafe impl Send for CDenoAsyncOpData {}
+
+#[no_mangle]
+pub extern "C" fn cdeno_create_op_async(
+    worker: CDenoAsyncOpDispatcher,
+    data: CDenoAsyncOpData,
+) -> *mut Op {
+    let fut = async move {
+        let (tx, rx) = channel();
+        spawn(move || {
+            worker(data.data, Box::new(tx));
+        });
+        rx.await.unwrap()
+    };
+
+    Box::into_raw(Box::new(Op::Async(fut.boxed())))
+}
+
+#[no_mangle]
+pub extern "C" fn cdeno_async_op_respond(
+    tx: Box<Sender<Box<[u8]>>>,
+    char_ptr: *mut c_uchar,
+    len: usize,
+) {
+    println!("Creating an async op response from {:?} bytes", len);
+    let slice = unsafe { std::slice::from_raw_parts(char_ptr, len) };
+
+    let vec = Vec::from(slice);
+
+    println!("Created a async op response from {:?}", vec);
+    tx.send(vec.into_boxed_slice()).unwrap();
+}
+
+#[repr(C)]
 pub struct ZeroCopyData {
     len: usize,
     data: *const c_uchar,
@@ -79,16 +119,13 @@ pub extern "C" fn cdeno_get_zero_copy_buf(
 ) -> ZeroCopyData {
     let no_copy = unsafe { &*zero_copy };
     println!("Getting zero copy buf at index {:?}", index);
-    println!("len of 0copybuf: {:?}", no_copy.len());
     if no_copy.len() > index {
-        println!("Zero copy buffer is present");
         let buf: &[u8] = &no_copy[index];
         ZeroCopyData {
             len: buf.len(),
             data: buf.as_ptr(),
         }
     } else {
-        println!("Zero copy buffer is NOT present");
         ZeroCopyData {
             len: 0,
             data: [].as_ptr(),
