@@ -9,6 +9,7 @@ use std::ffi::CStr;
 use std::os::raw::{c_char, c_uchar};
 use std::thread::spawn;
 
+/// Registers an op callback.
 #[no_mangle]
 pub extern "C" fn cdeno_register_op(
     iface: *mut CDenoInterface,
@@ -56,6 +57,7 @@ pub extern "C" fn cdeno_register_op(
     op_id
 }
 
+/// Creates a synchronous op.
 #[no_mangle]
 pub extern "C" fn cdeno_create_op_sync(char_ptr: *mut c_uchar, len: usize) -> *mut Op {
     println!("Creating a op from {:?} bytes", len);
@@ -69,12 +71,15 @@ pub extern "C" fn cdeno_create_op_sync(char_ptr: *mut c_uchar, len: usize) -> *m
 }
 
 #[repr(C)]
+/// A data holder for async ops.
 pub struct CDenoAsyncOpData {
+    /// A pointer to a data structure.
     data: *mut c_void,
 }
 
 unsafe impl Send for CDenoAsyncOpData {}
 
+/// Creates an asynchronous Deno op.
 #[no_mangle]
 pub extern "C" fn cdeno_create_op_async(
     worker: CDenoAsyncOpDispatcher,
@@ -91,6 +96,7 @@ pub extern "C" fn cdeno_create_op_async(
     Box::into_raw(Box::new(Op::Async(fut.boxed())))
 }
 
+/// Responds to/resolves an asynchronous op
 #[no_mangle]
 pub extern "C" fn cdeno_async_op_respond(
     tx: Box<Sender<Box<[u8]>>>,
@@ -106,12 +112,16 @@ pub extern "C" fn cdeno_async_op_respond(
     tx.send(vec.into_boxed_slice()).unwrap();
 }
 
+/// Represents the data of a zero-copy buffer
 #[repr(C)]
 pub struct ZeroCopyData {
+    /// The length of a zero copy buffer
     len: usize,
+    /// A pointer to the zero copy buffer data.
     data: *const c_uchar,
 }
 
+/// Gets data from a zero-copy buffer.
 #[no_mangle]
 pub extern "C" fn cdeno_get_zero_copy_buf(
     zero_copy: *const Box<&mut [ZeroCopyBuf]>,

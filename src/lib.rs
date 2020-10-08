@@ -14,11 +14,12 @@ use types::*;
 pub use ffi::*;
 
 thread_local! {
-    pub static LIB_HOLDER: RefCell<HashMap<usize, Rc<Library>>> = RefCell::new(HashMap::new());
-    pub static OP_TO_FN_PTR_MAP: RefCell<HashMap<OpId, CDenoOpDispatcher>> = RefCell::new(HashMap::new());
-    pub static OP_NAME_TO_ID_MAP: RefCell<HashMap<String, OpId>> = RefCell::new(HashMap::new());
+    pub(crate) static LIB_HOLDER: RefCell<HashMap<usize, Rc<Library>>> = RefCell::new(HashMap::new());
+    pub(crate) static OP_TO_FN_PTR_MAP: RefCell<HashMap<OpId, CDenoOpDispatcher>> = RefCell::new(HashMap::new());
+    pub(crate) static OP_NAME_TO_ID_MAP: RefCell<HashMap<String, OpId>> = RefCell::new(HashMap::new());
 }
 
+#[doc(hidden)]
 #[no_mangle]
 pub fn deno_plugin_init(iface: &mut dyn Interface) {
     iface.register_op("cdeno::open_plugin", open_plugin);
