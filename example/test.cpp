@@ -63,7 +63,7 @@ void *test_op_async(void *interface, void *zero_copy_buf, size_t buf_len)
     CDenoAsyncOpData data = {worker};
 
     cout << "Worker data at " << &worker << endl;
-    void *op = cdeno_create_op_async(&test_op_async_worker, data);
+    void *op = cdeno_create_op_async(&test_op_async_worker, data, true);
     return op;
 }
 

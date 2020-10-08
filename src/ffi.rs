@@ -50,7 +50,7 @@ pub extern "C" fn cdeno_register_op(
             Op::Sync(vec![].into_boxed_slice())
         })
     }
-    
+
     let op_id = interface.register_op(map_str, cdeno_trampoline);
     OP_TO_FN_PTR_MAP.with(|map| map.borrow_mut().insert(op_id, dispatcher));
     OP_NAME_TO_ID_MAP.with(|map| map.borrow_mut().insert(map_str.to_string(), op_id));
@@ -84,6 +84,7 @@ unsafe impl Send for CDenoAsyncOpData {}
 pub extern "C" fn cdeno_create_op_async(
     worker: CDenoAsyncOpDispatcher,
     data: CDenoAsyncOpData,
+    unref: bool,
 ) -> *mut Op {
     let fut = async move {
         let (tx, rx) = channel();
@@ -93,7 +94,11 @@ pub extern "C" fn cdeno_create_op_async(
         rx.await.unwrap()
     };
 
-    Box::into_raw(Box::new(Op::Async(fut.boxed())))
+    Box::into_raw(Box::new(if unref {
+        Op::AsyncUnref(fut.boxed())
+    } else {
+        Op::Async(fut.boxed())
+    }))
 }
 
 /// Responds to/resolves an asynchronous op
