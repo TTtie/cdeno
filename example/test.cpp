@@ -62,8 +62,7 @@ void *test_op_async(void *interface, void *zero_copy_buf, size_t buf_len)
     worker->test_response = test_response;
     CDenoAsyncOpData data = {worker};
 
-    cout << "Worker data at " << &worker << endl;
-    void *op = cdeno_create_op_async(&test_op_async_worker, data, true);
+    void *op = cdeno_create_op_async(&test_op_async_worker, data);
     return op;
 }
 
@@ -72,15 +71,11 @@ void test_op_async_worker(void *data, void *done_channel)
 
     cout << "Hello from worker!" << endl;
 
-    cout << "Data at " << data << " and done channel at " << done_channel << endl;
-
     // A thread is already spawned from Rust
     //thread thread([&done_channel, &data]() {
         WorkerData *worker_data = (WorkerData *)data;
 
-        cout << "Sleeping from thread" << endl;
         this_thread::sleep_for(10000ms);
-        cout << "Slept" << endl;
         cdeno_async_op_respond(done_channel,
                                (unsigned char *)(worker_data->test_response),
                                strlen(worker_data->test_response));

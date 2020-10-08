@@ -33,11 +33,6 @@ pub extern "C" fn cdeno_register_op(
             let map = map.borrow_mut();
             if map.contains_key(&op_id) {
                 let op_fn = map.get(&op_id).unwrap();
-                println!(
-                    "Brace for impact, calling {:?} at {:?}",
-                    op_id,
-                    (*op_fn) as *const CDenoOpDispatcher
-                );
 
                 let boxed_iface = Box::new(iface);
                 let boxed_buf = Box::new(&mut buf[1..]);
@@ -60,12 +55,8 @@ pub extern "C" fn cdeno_register_op(
 /// Creates a synchronous op.
 #[no_mangle]
 pub extern "C" fn cdeno_create_op_sync(char_ptr: *mut c_uchar, len: usize) -> *mut Op {
-    println!("Creating a op from {:?} bytes", len);
     let slice = unsafe { std::slice::from_raw_parts(char_ptr, len) };
-
     let vec = Vec::from(slice);
-
-    println!("Created a sync op from {:?}", vec);
 
     Box::into_raw(Box::new(Op::Sync(vec.into_boxed_slice())))
 }
@@ -108,12 +99,9 @@ pub extern "C" fn cdeno_async_op_respond(
     char_ptr: *mut c_uchar,
     len: usize,
 ) {
-    println!("Creating an async op response from {:?} bytes", len);
     let slice = unsafe { std::slice::from_raw_parts(char_ptr, len) };
-
     let vec = Vec::from(slice);
 
-    println!("Created a async op response from {:?}", vec);
     tx.send(vec.into_boxed_slice()).unwrap();
 }
 
@@ -133,7 +121,6 @@ pub extern "C" fn cdeno_get_zero_copy_buf(
     index: usize,
 ) -> ZeroCopyData {
     let no_copy = unsafe { &*zero_copy };
-    println!("Getting zero copy buf at index {:?}", index);
     if no_copy.len() > index {
         let buf: &[u8] = &no_copy[index];
         ZeroCopyData {
