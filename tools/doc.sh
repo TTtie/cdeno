@@ -1,0 +1,1 @@
+cargo doc --release -p cdeno --no-deps
